@@ -7,7 +7,7 @@
  */
 
 #ifdef SD_WEBP
-
+/*
 #import "SDWebImageWebPCoder.h"
 #import "SDWebImageCoderHelper.h"
 #import "NSImage+WebCache.h"
@@ -418,5 +418,5 @@ static void FreeImageData(void *info, const void *data, size_t size) {
 }
 
 @end
-
+*/
 #endif

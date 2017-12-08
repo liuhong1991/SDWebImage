@@ -10,7 +10,7 @@
 #import "SDWebImageImageIOCoder.h"
 #import "SDWebImageGIFCoder.h"
 #ifdef SD_WEBP
-#import "SDWebImageWebPCoder.h"
+//#import "SDWebImageWebPCoder.h"
 #endif
 
 @interface SDWebImageCodersManager ()
@@ -36,7 +36,7 @@
         // initialize with default coders
         _mutableCoders = [@[[SDWebImageImageIOCoder sharedCoder]] mutableCopy];
 #ifdef SD_WEBP
-        [_mutableCoders addObject:[SDWebImageWebPCoder sharedCoder]];
+//        [_mutableCoders addObject:[SDWebImageWebPCoder sharedCoder]];
 #endif
         _mutableCodersAccessQueue = dispatch_queue_create("com.hackemist.SDWebImageCodersManager", DISPATCH_QUEUE_CONCURRENT);
     }
