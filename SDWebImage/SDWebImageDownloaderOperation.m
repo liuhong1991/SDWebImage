@@ -276,7 +276,8 @@ didReceiveResponse:(NSURLResponse *)response
  completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
     
     //'304 Not Modified' is an exceptional one
-    if (![response respondsToSelector:@selector(statusCode)] || (((NSHTTPURLResponse *)response).statusCode < 400 && ((NSHTTPURLResponse *)response).statusCode != 304)) {
+    //服务器若发现文件没变化,会返回304,一旦发生变化就会返回新数据以及新的ETag.
+    if (![response respondsToSelector:@selector(statusCode)] || (((NSHTTPURLResponse *)response).statusCode < 400 && ((NSHTTPURLResponse *)response).statusCode != 304)) {//文件发生了改变
         NSInteger expected = (NSInteger)response.expectedContentLength;
         expected = expected > 0 ? expected : 0;
         self.expectedSize = expected;

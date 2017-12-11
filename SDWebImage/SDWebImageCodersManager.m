@@ -115,7 +115,7 @@
         return nil;
     }
     for (id<SDWebImageCoder> coder in self.coders) {
-        if ([coder canDecodeFromData:*data]) {
+        if ([coder canDecodeFromData:*data]) {//解压
             return [coder decompressedImageWithImage:image data:data options:optionsDict];
         }
     }

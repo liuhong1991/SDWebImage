@@ -59,11 +59,13 @@ typedef NS_ENUM(NSInteger, SDWebImageDownloaderExecutionOrder) {
     /**
      * Default value. All download operations will execute in queue style (first-in-first-out).
      */
+    //所有的下载操作在队列中的执行顺序是先进先出(队列)
     SDWebImageDownloaderFIFOExecutionOrder,
 
     /**
      * All download operations will execute in stack style (last-in-first-out).
      */
+    //所有下载操作以栈的形式执行,先进后出
     SDWebImageDownloaderLIFOExecutionOrder
 };
 
@@ -99,21 +101,25 @@ typedef SDHTTPHeadersDictionary * _Nullable (^SDWebImageDownloaderHeadersFilterB
  * Decompressing images that are downloaded and cached can improve performance but can consume lot of memory.
  * Defaults to YES. Set this to NO if you are experiencing a crash due to excessive memory consumption.
  */
+//应该解压image
 @property (assign, nonatomic) BOOL shouldDecompressImages;
 
 /**
  *  The maximum number of concurrent downloads
  */
+//最大下载数
 @property (assign, nonatomic) NSInteger maxConcurrentDownloads;
 
 /**
  * Shows the current amount of downloads that still need to be downloaded
  */
+//当前下载数
 @property (readonly, nonatomic) NSUInteger currentDownloadCount;
 
 /**
  *  The timeout value (in seconds) for the download operation. Default: 15.0.
  */
+//下载超时时间
 @property (assign, nonatomic) NSTimeInterval downloadTimeout;
 
 /**
@@ -122,12 +128,14 @@ typedef SDHTTPHeadersDictionary * _Nullable (^SDWebImageDownloaderHeadersFilterB
  *
  * @see createNewSessionWithConfiguration:
  */
+//会话配置
 @property (readonly, nonatomic, nonnull) NSURLSessionConfiguration *sessionConfiguration;
 
 
 /**
  * Changes download operations execution order. Default value is `SDWebImageDownloaderFIFOExecutionOrder`.
  */
+//下载操作的执行顺序
 @property (assign, nonatomic) SDWebImageDownloaderExecutionOrder executionOrder;
 
 /**
@@ -140,11 +148,13 @@ typedef SDHTTPHeadersDictionary * _Nullable (^SDWebImageDownloaderHeadersFilterB
 /**
  *  Set the default URL credential to be set for request operations.
  */
+//url凭据
 @property (strong, nonatomic, nullable) NSURLCredential *urlCredential;
 
 /**
  * Set username
  */
+
 @property (strong, nonatomic, nullable) NSString *username;
 
 /**
@@ -165,6 +175,7 @@ typedef SDHTTPHeadersDictionary * _Nullable (^SDWebImageDownloaderHeadersFilterB
  * @note `timeoutIntervalForRequest` is going to be overwritten.
  * @return new instance of downloader class
  */
+//创建初始化会话对象
 - (nonnull instancetype)initWithSessionConfiguration:(nullable NSURLSessionConfiguration *)sessionConfiguration NS_DESIGNATED_INITIALIZER;
 
 /**
@@ -173,6 +184,7 @@ typedef SDHTTPHeadersDictionary * _Nullable (^SDWebImageDownloaderHeadersFilterB
  * @param value The value for the header field. Use `nil` value to remove the header.
  * @param field The name of the header field to set.
  */
+//设置请求范围
 - (void)setValue:(nullable NSString *)value forHTTPHeaderField:(nullable NSString *)field;
 
 /**

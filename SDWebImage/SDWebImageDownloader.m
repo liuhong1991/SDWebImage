@@ -80,7 +80,9 @@
 #else
         _HTTPHeaders = [@{@"Accept": @"image/*;q=0.8"} mutableCopy];
 #endif
+        //并发队列
         _barrierQueue = dispatch_queue_create("com.hackemist.SDWebImageDownloaderBarrierQueue", DISPATCH_QUEUE_CONCURRENT);
+        //请求超时时间
         _downloadTimeout = 15.0;
 
         [self createNewSessionWithConfiguration:sessionConfiguration];
@@ -135,14 +137,16 @@
     return self.HTTPHeaders[field];
 }
 
+//设置最大并发下载数
 - (void)setMaxConcurrentDownloads:(NSInteger)maxConcurrentDownloads {
     _downloadQueue.maxConcurrentOperationCount = maxConcurrentDownloads;
 }
 
+//当前下载数
 - (NSUInteger)currentDownloadCount {
     return _downloadQueue.operationCount;
 }
-
+//返回最大下载数
 - (NSInteger)maxConcurrentDownloads {
     return _downloadQueue.maxConcurrentOperationCount;
 }
@@ -263,16 +267,18 @@
     return token;
 }
 
+// 暂停下载操作
 - (void)setSuspended:(BOOL)suspended {
     self.downloadQueue.suspended = suspended;
 }
 
+// 取消所有下载操作
 - (void)cancelAllDownloads {
     [self.downloadQueue cancelAllOperations];
 }
 
 #pragma mark Helper methods
-
+// 返回下载队列中特定任务的操作
 - (SDWebImageDownloaderOperation *)operationWithTask:(NSURLSessionTask *)task {
     SDWebImageDownloaderOperation *returnOperation = nil;
     for (SDWebImageDownloaderOperation *operation in self.downloadQueue.operations) {

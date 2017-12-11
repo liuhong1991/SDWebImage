@@ -40,6 +40,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 #if SD_MAC
     return image.size.height * image.size.width;
 #elif SD_UIKIT || SD_WATCH
+    //sd_uikit 代表 iOS和 tvOS
     return image.size.height * image.size.width * image.scale * image.scale;
 #endif
 }
@@ -152,8 +153,13 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     }
 }
 
+static NSString * _Nullable extracted(SDImageCache *object, NSString * _Nullable key) {
+    // 返回缓存的文件名称
+    return [object cachedFileNameForKey:key];
+}
+
 - (nullable NSString *)cachePathForKey:(nullable NSString *)key inPath:(nonnull NSString *)path {
-    NSString *filename = [self cachedFileNameForKey:key];
+    NSString *filename = extracted(self, key);
     return [path stringByAppendingPathComponent:filename];
 }
 
@@ -208,11 +214,14 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
         return;
     }
     // if memory cache is enabled
+    //若允许内存缓存
     if (self.config.shouldCacheImagesInMemory) {
+        //返回图片的大小
         NSUInteger cost = SDCacheCostForImage(image);
+        //使用NSCache存储图片
         [self.memCache setObject:image forKey:key cost:cost];
     }
-    
+    //磁盘缓存
     if (toDisk) {
         dispatch_async(self.ioQueue, ^{
             @autoreleasepool {
@@ -230,7 +239,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
                 });
             }
         });
-    } else {
+    } else {//不需要磁盘缓存
         if (completionBlock) {
             completionBlock();
         }
@@ -262,9 +271,10 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 #pragma mark - Query and Retrieve Ops
-
+// 磁盘缓存
 - (void)diskImageExistsWithKey:(nullable NSString *)key completion:(nullable SDWebImageCheckCacheCompletionBlock)completionBlock {
     dispatch_async(_ioQueue, ^{
+        //获取磁盘缓存
         BOOL exists = [_fileManager fileExistsAtPath:[self defaultCachePathForKey:key]];
 
         // fallback because of https://github.com/rs/SDWebImage/pull/976 that added the extension to the disk file name
@@ -308,6 +318,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 - (nullable NSData *)diskImageDataBySearchingAllPathsForKey:(nullable NSString *)key {
+    //根据key查看路径中有没有对应的图片
     NSString *defaultPath = [self defaultCachePathForKey:key];
     NSData *data = [NSData dataWithContentsOfFile:defaultPath options:self.config.diskCacheReadingOptions error:nil];
     if (data) {
@@ -345,7 +356,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     if (data) {
         UIImage *image = [[SDWebImageCodersManager sharedInstance] decodedImageWithData:data];
         image = [self scaledImageForKey:key image:image];
-        if (self.config.shouldDecompressImages) {
+        if (self.config.shouldDecompressImages) {//需要解压图片
             image = [[SDWebImageCodersManager sharedInstance] decompressedImageWithImage:image data:&data options:@{SDWebImageCoderScaleDownLargeImagesKey: @(NO)}];
         }
         return image;
@@ -367,10 +378,11 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     }
 
     // First check the in-memory cache...
+    //先检查内存中有没有图片
     UIImage *image = [self imageFromMemoryCacheForKey:key];
     if (image) {
         NSData *diskData = nil;
-        if (image.images) {
+        if (image.images) {//动态图
             diskData = [self diskImageDataBySearchingAllPathsForKey:key];
         }
         if (doneBlock) {
@@ -437,7 +449,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 # pragma mark - Mem Cache settings
-
+//设置最大缓存消耗
 - (void)setMaxMemoryCost:(NSUInteger)maxMemoryCost {
     self.memCache.totalCostLimit = maxMemoryCost;
 }
@@ -480,6 +492,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     [self deleteOldFilesWithCompletionBlock:nil];
 }
 
+//删除过期的文件
 - (void)deleteOldFilesWithCompletionBlock:(nullable SDWebImageNoParamsBlock)completionBlock {
     dispatch_async(self.ioQueue, ^{
         NSURL *diskCacheURL = [NSURL fileURLWithPath:self.diskCachePath isDirectory:YES];
@@ -505,11 +518,13 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
             NSDictionary<NSString *, id> *resourceValues = [fileURL resourceValuesForKeys:resourceKeys error:&error];
 
             // Skip directories and errors.
+            //跳过错误
             if (error || !resourceValues || [resourceValues[NSURLIsDirectoryKey] boolValue]) {
                 continue;
             }
 
             // Remove files that are older than the expiration date;
+            //删除超过有效期的文件
             NSDate *modificationDate = resourceValues[NSURLContentModificationDateKey];
             if ([[modificationDate laterDate:expirationDate] isEqualToDate:expirationDate]) {
                 [urlsToDelete addObject:fileURL];
@@ -517,6 +532,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
             }
 
             // Store a reference to this file and account for its total size.
+            // 存储文件大小
             NSNumber *totalAllocatedSize = resourceValues[NSURLTotalFileAllocatedSizeKey];
             currentCacheSize += totalAllocatedSize.unsignedIntegerValue;
             cacheFiles[fileURL] = resourceValues;
@@ -528,17 +544,21 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 
         // If our remaining disk cache exceeds a configured maximum size, perform a second
         // size-based cleanup pass.  We delete the oldest files first.
+        // 内存超过最大允许内存大小,删除过期的图片
         if (self.config.maxCacheSize > 0 && currentCacheSize > self.config.maxCacheSize) {
             // Target half of our maximum cache size for this cleanup pass.
+            // 设置期望的缓存大小
             const NSUInteger desiredCacheSize = self.config.maxCacheSize / 2;
 
             // Sort the remaining cache files by their last modification time (oldest first).
+            //内存提醒时排序最后修改时间的文件,由早到近
             NSArray<NSURL *> *sortedFiles = [cacheFiles keysSortedByValueWithOptions:NSSortConcurrent
                                                                      usingComparator:^NSComparisonResult(id obj1, id obj2) {
                                                                          return [obj1[NSURLContentModificationDateKey] compare:obj2[NSURLContentModificationDateKey]];
                                                                      }];
 
             // Delete files until we fall below our desired cache size.
+            // 删除文件当缓存文件大小超过期望内存大小
             for (NSURL *fileURL in sortedFiles) {
                 if ([_fileManager removeItemAtURL:fileURL error:nil]) {
                     NSDictionary<NSString *, id> *resourceValues = cacheFiles[fileURL];
@@ -565,6 +585,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     if(!UIApplicationClass || ![UIApplicationClass respondsToSelector:@selector(sharedApplication)]) {
         return;
     }
+
     UIApplication *application = [UIApplication performSelector:@selector(sharedApplication)];
     __block UIBackgroundTaskIdentifier bgTask = [application beginBackgroundTaskWithExpirationHandler:^{
         // Clean up any unfinished task business by marking where you
@@ -586,9 +607,11 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 - (NSUInteger)getSize {
     __block NSUInteger size = 0;
     dispatch_sync(self.ioQueue, ^{
+        //获取该路径下的文件列表
         NSDirectoryEnumerator *fileEnumerator = [_fileManager enumeratorAtPath:self.diskCachePath];
         for (NSString *fileName in fileEnumerator) {
             NSString *filePath = [self.diskCachePath stringByAppendingPathComponent:fileName];
+            //获取对应路径下的文件属性
             NSDictionary<NSString *, id> *attrs = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:nil];
             size += [attrs fileSize];
         }
@@ -605,6 +628,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     return count;
 }
 
+//计算文件的大小
 - (void)calculateSizeWithCompletionBlock:(nullable SDWebImageCalculateSizeBlock)completionBlock {
     NSURL *diskCacheURL = [NSURL fileURLWithPath:self.diskCachePath isDirectory:YES];
 

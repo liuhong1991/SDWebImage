@@ -11,7 +11,6 @@
 #import <objc/message.h>
 
 @interface SDWebImageCombinedOperation : NSObject <SDWebImageOperation>
-
 @property (assign, nonatomic, getter = isCancelled) BOOL cancelled;
 @property (copy, nonatomic, nullable) SDWebImageNoParamsBlock cancelBlock;
 @property (strong, nonatomic, nullable) NSOperation *cacheOperation;
@@ -66,12 +65,15 @@
     }
 }
 
+//查看图片url是否有缓存
 - (void)cachedImageExistsForURL:(nullable NSURL *)url
                      completion:(nullable SDWebImageCheckCacheCompletionBlock)completionBlock {
     NSString *key = [self cacheKeyForURL:url];
     
+    //内存缓存
     BOOL isInMemoryCache = ([self.imageCache imageFromMemoryCacheForKey:key] != nil);
     
+    //1.有内存缓存
     if (isInMemoryCache) {
         // making sure we call the completion block on the main queue
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -81,7 +83,7 @@
         });
         return;
     }
-    
+    //2.内存缓存
     [self.imageCache diskImageExistsWithKey:key completion:^(BOOL isInDiskCache) {
         // the completion block of checkDiskCacheForImageWithKey:completion: is always called on the main queue, no need to further dispatch
         if (completionBlock) {
